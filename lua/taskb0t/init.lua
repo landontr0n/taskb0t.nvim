@@ -17,7 +17,7 @@ M.setup = function (opts)
 end
 
 M.find_tasks = function (dir)
-    print("taskb0t.find_tasks: dir: " .. dir)
+    print("taskb0t.find_tasks: dir:", dir)
 end
 
 M.toggle_task = function (path, line)
@@ -32,7 +32,7 @@ local function open_window()
   buf = api.nvim_create_buf(false, true)
 
   api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-  api.nvim_buf_set_option(buf, 'filetype', 'whid')
+  api.nvim_buf_set_option(buf, 'filetype', 'taskb0t')
 
   local width = api.nvim_get_option("columns")
   local height = api.nvim_get_option("lines")
@@ -64,7 +64,7 @@ local function update_view()
   api.nvim_buf_set_option(buf, 'modifiable', true)
 
   -- TODO: these results should be the list of tasks
-  local result = {"- [ ] This is a test task", "- [ ] #task This task has a hashtag", "/home/landontr0n/imagine/this/is/a/filename.md", "- [ ] I'm an open task", "- [ ] #task due:2023-12-23 I might have some metadata of some kind", "Friday", "Saturday"}
+  local result = {"- [ ] This is a test task", "- [ ] #task This task has a hashtag", "/home/landontr0n/imagine/this/is/a/filename.md", "- [ ] I'm an open task", "- [ ] #task due:2023-12-23 I might have some metadata of some kind"}
   if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
   for k,v in pairs(result) do
     result[k] = '  '..result[k]
@@ -72,7 +72,6 @@ local function update_view()
 
   api.nvim_buf_set_lines(buf, 0, -1, false, result)
 
-  api.nvim_buf_add_highlight(buf, -1, 'whidSubHeader', 1, 0, -1)
   api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 
@@ -102,13 +101,13 @@ local function set_mappings()
   end
 end
 
-M.testwin = function ()
+M.taskb0t = function ()
     open_window()
     set_mappings()
     update_view()
 end
 
 -- test run stuff w/ source %
-M.testwin()
+M.taskb0t()
 
 return M
