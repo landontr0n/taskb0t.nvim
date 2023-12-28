@@ -12,12 +12,19 @@ local M = {}
 -- vim.keymap.set(...)
 -- vim.api
 
-M.setup = function (opts)
-    print("Options:", opts)
+local _config = {}
+
+M.setup = function (config)
+    _config = config
+    print("Config:", config)
 end
 
 M.find_tasks = function (dir)
-    print("taskb0t.find_tasks: dir:", dir)
+    -- print("taskb0t.find_tasks: dir:", dir)
+
+    local settings = vim.g.taskb0t_settings or {}
+
+    print("taskb0t.find_tasks: taskb0t vault dir:", settings.vault_dir or '~/.config/taskb0t/vault/')
 end
 
 M.toggle_task = function (path, line)
@@ -60,18 +67,24 @@ local function open_window()
 
 end
 
+local function get_files(dir)
+    -- local cwDir = vim.fn.getcwd()
+    local settings = vim.g.taskb0t_settings or {}
+
+    -- TODO: make sure this tripple or statement works
+    -- Get all files and directories
+    local content = vim.split(vim.fn.glob(dir or settings.vault_dir or '~/.config/taskb0t/vault' .. "/*"), '\n', {trimempty=true})
+
+    return content
+end
+
 local function update_view()
   api.nvim_buf_set_option(buf, 'modifiable', true)
 
-  -- TODO: these results should be the list of tasks
-  local result = {"- [ ] This is a test task", "- [ ] #task This task has a hashtag", "/home/landontr0n/imagine/this/is/a/filename.md", "- [ ] I'm an open task", "- [ ] #task due:2023-12-23 I might have some metadata of some kind"}
+  local result = get_files()
   if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
-  for k,v in pairs(result) do
-    result[k] = '  '..result[k]
-  end
 
   api.nvim_buf_set_lines(buf, 0, -1, false, result)
-
   api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 
