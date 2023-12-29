@@ -84,7 +84,8 @@ local function update_view()
   local result = get_files()
   if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
 
-  api.nvim_buf_set_lines(buf, 0, -1, false, result)
+  api.nvim_buf_set_lines(buf, 0, -1, false, {"Vaults","======================================"})
+  api.nvim_buf_set_lines(buf, 2, -1, false, result)
   api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 
@@ -96,9 +97,7 @@ end
 M.open_file = function ()
   local str = api.nvim_get_current_line()
   M.close_window()
-  -- TODO: make me open the file, maybe
-  --api.nvim_command('edit ' ..str )
-  print("taskb0t.open_file")
+  api.nvim_command('edit ' ..str )
 end
 
 local function set_mappings()
@@ -119,8 +118,5 @@ M.taskb0t = function ()
     set_mappings()
     update_view()
 end
-
--- test run stuff w/ source %
-M.taskb0t()
 
 return M
