@@ -5,26 +5,24 @@ local M = {}
 -- tag in frontmatter like task-tag
 -- tasks by dir opt recursive
 -- create quick acess task books
--- create favorites and have aluancher like to pull up saved task contexts
+-- create favorites and have launcher like to pull up saved task contexts
 -- toggle task
 --
 -- nvim_get_keymap
 -- vim.keymap.set(...)
 -- vim.api
 
-local _config = {}
+--local _config = {}
+
+local settings = vim.g.taskb0t_settings or {}
 
 M.setup = function (config)
-    _config = config
+    --_config = config
     print("Config:", config)
 end
 
 M.find_tasks = function (dir)
-    -- print("taskb0t.find_tasks: dir:", dir)
-
-    local settings = vim.g.taskb0t_settings or {}
-
-    print("taskb0t.find_tasks: taskb0t vault dir:", settings.vault_dir or '~/.config/taskb0t/vault/')
+    print("taskb0t.find_tasks: taskb0t vault dir:", dir or settings.vault_dir or '~/.config/taskb0t/vault/')
 end
 
 M.toggle_task = function (path, line)
@@ -68,9 +66,6 @@ local function open_window()
 end
 
 local function get_files(dir)
-    -- local cwDir = vim.fn.getcwd()
-    local settings = vim.g.taskb0t_settings or {}
-
     -- TODO: make sure this tripple or statement works
     -- Get all files and directories
     local content = vim.split(vim.fn.glob(dir or settings.vault_dir or '~/.config/taskb0t/vault' .. "/*"), '\n', {trimempty=true})
@@ -89,6 +84,14 @@ local function update_view()
   api.nvim_buf_set_option(buf, 'modifiable', false)
 end
 
+M.create_file = function (dir)
+    local user_input = vim.fn.input("New File Name: ")
+    vim.fn.writefile({"# " .. user_input}, dir or settings.vault_dir or vim.fn.expand("~/.config/taskb0t/vault/") .. user_input .. '.md')
+    update_view()
+    api.nvim_command("echo '' | redraw")
+    vim.api.nvim_echo({{"Created: " .. user_input, 'None'}}, true, {})
+end
+
 M.close_window = function ()
   -- TODO: make this work properly
   api.nvim_win_close(win, true)
@@ -100,10 +103,23 @@ M.open_file = function ()
   api.nvim_command('edit ' ..str )
 end
 
+M.delete_file = function ()
+  local str = api.nvim_get_current_line()
+  local user_input = vim.fn.input("Are you sure you want to delete: " .. str .. " ? [y/N] : ")
+  api.nvim_command("echo '' | redraw")
+  if user_input == "y" then
+      vim.fn.delete(str)
+      update_view()
+      vim.api.nvim_echo({{"Deleted: " .. str}}, true, {})
+  end
+end
+
 local function set_mappings()
   local mappings = {
     ['<cr>'] = 'open_file()',
-    q = 'close_window()'
+    q = 'close_window()',
+    d = 'delete_file()',
+    c = 'create_file()'
   }
 
   for k,v in pairs(mappings) do
