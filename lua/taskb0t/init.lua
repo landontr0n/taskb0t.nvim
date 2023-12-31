@@ -31,38 +31,73 @@ end
 
 
 local api = vim.api
-local buf, win
+local buf_picker, buf_editor, win_picker, win_editor
 
-local function open_window()
-  buf = api.nvim_create_buf(false, true)
+local function open_files_window()
+  buf_picker = api.nvim_create_buf(false, true)
 
-  api.nvim_buf_set_option(buf, 'bufhidden', 'wipe')
-  api.nvim_buf_set_option(buf, 'filetype', 'taskb0t')
+  api.nvim_buf_set_option(buf_picker, 'bufhidden', 'wipe')
+  api.nvim_buf_set_option(buf_picker, 'filetype', 'taskb0t')
 
   local width = api.nvim_get_option("columns")
   local height = api.nvim_get_option("lines")
 
   local win_height = math.ceil(height * 0.8 - 4)
-  local win_width = math.ceil(width * 0.8)
+  local win_width = math.ceil(width * 0.4)
   local row = math.ceil((height - win_height) / 2 - 1)
-  local col = math.ceil((width - win_width) / 2)
+  local col = math.ceil((width * 0.1) - 2)
 
   local opts = {
-    style = "minimal",
     relative = "editor",
+    border = "rounded",
     width = win_width,
     height = win_height,
     row = row,
     col = col,
     title = "taskb0t",
-    title_pos = "center",
-    border = "double"
+    title_pos = "center"
   }
 
-  win = api.nvim_open_win(buf, true, opts)
+  win_picker = api.nvim_open_win(buf_picker, true, opts)
 
-  api.nvim_win_set_option(win, 'cursorline', true) -- it highlight line with the cursor on it
+  api.nvim_win_set_option(win_picker, 'cursorline', true) -- it highlight line with the cursor on it
 
+end
+
+local function open_editor_window()
+  buf_editor = api.nvim_create_buf(false, true)
+
+  api.nvim_buf_set_option(buf_editor, 'bufhidden', 'wipe')
+  api.nvim_buf_set_option(buf_editor, 'filetype', 'taskb0t')
+
+  local width = api.nvim_get_option("columns")
+  local height = api.nvim_get_option("lines")
+
+  local win_height = math.ceil(height * 0.8 - 4)
+  local win_width = math.ceil(width * 0.4)
+  local row = math.ceil((height - win_height) / 2 - 1)
+  local col = math.ceil((width / 2) + 1)
+
+  local opts = {
+    relative = "editor",
+    border = "rounded",
+    width = win_width,
+    height = win_height,
+    row = row,
+    col = col,
+    title = "editor",
+    title_pos = "center"
+  }
+
+  win_editor = api.nvim_open_win(buf_editor, true, opts)
+
+  api.nvim_win_set_option(win_editor, 'cursorline', true) -- it highlight line with the cursor on it
+
+end
+
+local function open_navigator()
+    open_files_window()
+    open_editor_window()
 end
 
 local function get_files(dir)
@@ -74,14 +109,51 @@ local function get_files(dir)
 end
 
 local function update_view()
-  api.nvim_buf_set_option(buf, 'modifiable', true)
+  api.nvim_buf_set_option(buf_picker, 'modifiable', true)
 
   local result = get_files()
   if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
 
-  api.nvim_buf_set_lines(buf, 0, -1, false, {"Vaults","======================================"})
-  api.nvim_buf_set_lines(buf, 2, -1, false, result)
-  api.nvim_buf_set_option(buf, 'modifiable', false)
+  --api.nvim_buf_set_lines(buf_picker, 0, -1, false, {"Vaults","======================================"})
+  api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
+  api.nvim_buf_set_option(buf_picker, 'modifiable', false)
+
+  -- TODO: setup editor views and refactor this whole thing to handle multiple views better
+  api.nvim_buf_set_option(buf_editor, 'modifiable', true)
+
+  api.nvim_buf_set_lines(buf_editor, 0, -1, false, {"Editor"})
+  api.nvim_buf_set_option(buf_editor, 'modifiable', false)
+end
+
+local function set_mappings()
+  local picker_mappings = {
+    ['<cr>'] = 'open_file()',
+    ['<Tab>'] = 'set_win()',
+    q = 'close_window()',
+    d = 'delete_file()',
+    c = 'create_file()',
+    k = 'editor_nav(\"up\")',
+    j = 'editor_nav(\"down\")'
+  }
+
+  for k,v in pairs(picker_mappings) do
+    api.nvim_buf_set_keymap(buf_picker, 'n', k, ':lua require"taskb0t".'..v..'<cr>', {
+        nowait = true, noremap = true, silent = true
+      })
+  end
+end
+
+local function set_editor_mappings()
+  local editor_mappings = {
+    q = 'close_window()',
+    ['<Tab>'] = 'set_win()'
+  }
+
+  for k,v in pairs(editor_mappings) do
+    api.nvim_buf_set_keymap(buf_editor, 'n', k, ':lua require"taskb0t".'..v..'<cr>', {
+        nowait = true, noremap = true, silent = true
+      })
+  end
 end
 
 M.create_file = function (dir)
@@ -94,13 +166,21 @@ end
 
 M.close_window = function ()
   -- TODO: make this work properly
-  api.nvim_win_close(win, true)
+  api.nvim_win_close(win_picker, true)
+  api.nvim_win_close(win_editor, true)
 end
 
 M.open_file = function ()
   local str = api.nvim_get_current_line()
-  M.close_window()
-  api.nvim_command('edit ' ..str )
+  local buf_editor_current = api.nvim_win_get_buf(win_editor)
+
+  api.nvim_win_call(win_editor, function ()
+    api.nvim_command('edit ' .. str)
+  end)
+
+  api.nvim_buf_delete(buf_editor_current)
+  buf_editor = api.nvim_win_get_buf(win_editor)
+  set_editor_mappings()
 end
 
 M.delete_file = function ()
@@ -114,25 +194,39 @@ M.delete_file = function ()
   end
 end
 
-local function set_mappings()
-  local mappings = {
-    ['<cr>'] = 'open_file()',
-    q = 'close_window()',
-    d = 'delete_file()',
-    c = 'create_file()'
-  }
+M.set_win = function (window)
+    -- TODO: I'm assuming I can do better than this...
+    if window == nil then
+        local current_win = api.nvim_get_current_win()
+        if current_win == win_picker then
+            window = win_editor
+        else
+            window = win_picker
+        end
+    end
 
-  for k,v in pairs(mappings) do
-    api.nvim_buf_set_keymap(buf, 'n', k, ':lua require"taskb0t".'..v..'<cr>', {
-        nowait = true, noremap = true, silent = true
-      })
+    api.nvim_set_current_win(window)
+end
+
+M.editor_nav = function (direction)
+  local diff = 1
+  if direction == "down" then
+    diff = -1
   end
+
+  local new_pos = api.nvim_win_get_cursor(win_picker)[1] - diff
+  pcall(function ()
+      api.nvim_win_set_cursor(win_picker, {new_pos, 0})
+      M.open_file()
+  end)
 end
 
 M.taskb0t = function ()
-    open_window()
+    open_navigator()
     set_mappings()
+    set_editor_mappings()
     update_view()
+    M.set_win(win_picker)
 end
 
 return M
