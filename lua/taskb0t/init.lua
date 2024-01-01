@@ -4,16 +4,13 @@ local M = {}
 -- tasks by tag
 -- tag in frontmatter like task-tag
 -- tasks by dir opt recursive
--- create quick acess task books
 -- create favorites and have launcher like to pull up saved task contexts
 -- toggle task
---
--- nvim_get_keymap
--- vim.keymap.set(...)
--- vim.api
 
 --local _config = {}
 
+local api = vim.api
+local buf_picker, buf_editor, win_picker, win_editor
 local settings = vim.g.taskb0t_settings or {}
 
 M.setup = function (config)
@@ -28,10 +25,6 @@ end
 M.toggle_task = function (path, line)
     print("taskb0t.toggle_task: path: " .. path .. " | line: " .. line)
 end
-
-
-local api = vim.api
-local buf_picker, buf_editor, win_picker, win_editor
 
 local function open_files_window()
   buf_picker = api.nvim_create_buf(false, true)
@@ -114,26 +107,23 @@ local function update_view()
   local result = get_files()
   if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
 
-  --api.nvim_buf_set_lines(buf_picker, 0, -1, false, {"Vaults","======================================"})
   api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
   api.nvim_buf_set_option(buf_picker, 'modifiable', false)
 
-  -- TODO: setup editor views and refactor this whole thing to handle multiple views better
   api.nvim_buf_set_option(buf_editor, 'modifiable', true)
-
   api.nvim_buf_set_lines(buf_editor, 0, -1, false, {"Editor"})
   api.nvim_buf_set_option(buf_editor, 'modifiable', false)
 end
 
 local function set_mappings()
   local picker_mappings = {
-    ['<cr>'] = 'open_file()',
-    ['<Tab>'] = 'set_win()',
+    ['<cr>'] = 'set_win()',
     q = 'close_window()',
     d = 'delete_file()',
     c = 'create_file()',
+    j = 'editor_nav(\"down\")',
     k = 'editor_nav(\"up\")',
-    j = 'editor_nav(\"down\")'
+    l = 'set_win()'
   }
 
   for k,v in pairs(picker_mappings) do
@@ -145,8 +135,7 @@ end
 
 local function set_editor_mappings()
   local editor_mappings = {
-    q = 'close_window()',
-    ['<Tab>'] = 'set_win()'
+    q = 'set_win()'
   }
 
   for k,v in pairs(editor_mappings) do
@@ -166,19 +155,25 @@ end
 
 M.close_window = function ()
   -- TODO: make this work properly
-  api.nvim_win_close(win_picker, true)
-  api.nvim_win_close(win_editor, true)
+  pcall(function ()
+      api.nvim_win_call(win_editor, function ()
+          api.nvim_command('bd')
+      end)
+      api.nvim_win_close(win_picker, true)
+      api.nvim_win_close(win_editor, true)
+  end)
 end
 
 M.open_file = function ()
   local str = api.nvim_get_current_line()
-  local buf_editor_current = api.nvim_win_get_buf(win_editor)
 
-  api.nvim_win_call(win_editor, function ()
-    api.nvim_command('edit ' .. str)
+  pcall(function ()
+      api.nvim_win_call(win_editor, function ()
+          api.nvim_command('edit ' .. str)
+          api.nvim_command('bd#')
+      end)
   end)
 
-  api.nvim_buf_delete(buf_editor_current)
   buf_editor = api.nvim_win_get_buf(win_editor)
   set_editor_mappings()
 end
@@ -227,6 +222,7 @@ M.taskb0t = function ()
     set_editor_mappings()
     update_view()
     M.set_win(win_picker)
+    M.open_file()
 end
 
 return M
