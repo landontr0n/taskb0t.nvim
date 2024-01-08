@@ -6,6 +6,9 @@ local M = {}
 -- tasks by dir opt recursive
 -- create favorites and have launcher like to pull up saved task contexts
 -- toggle task
+--
+-- TODO: remove default editor creation fropm update view
+-- ...instead call open file and if picker list is null then open a default view that explains the tool
 
 --local _config = {}
 
@@ -110,9 +113,10 @@ local function update_view()
   api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
   api.nvim_buf_set_option(buf_picker, 'modifiable', false)
 
-  api.nvim_buf_set_option(buf_editor, 'modifiable', true)
-  api.nvim_buf_set_lines(buf_editor, 0, -1, false, {"Editor"})
-  api.nvim_buf_set_option(buf_editor, 'modifiable', false)
+  M.open_file()
+  -- api.nvim_buf_set_option(buf_editor, 'modifiable', true)
+  -- api.nvim_buf_set_lines(buf_editor, 0, -1, false, {"Editor"})
+  -- api.nvim_buf_set_option(buf_editor, 'modifiable', false)
 end
 
 local function set_mappings()
