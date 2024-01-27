@@ -18,7 +18,7 @@ local settings = vim.g.taskb0t_settings or {}
 
 M.setup = function (config)
     --_config = config
-    print("Config:", config)
+    print("taskb0t config:", config)
 end
 
 M.find_tasks = function (dir)
@@ -112,11 +112,6 @@ local function update_view()
 
   api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
   api.nvim_buf_set_option(buf_picker, 'modifiable', false)
-
-  M.open_file()
-  -- api.nvim_buf_set_option(buf_editor, 'modifiable', true)
-  -- api.nvim_buf_set_lines(buf_editor, 0, -1, false, {"Editor"})
-  -- api.nvim_buf_set_option(buf_editor, 'modifiable', false)
 end
 
 local function set_mappings()
@@ -170,11 +165,15 @@ end
 
 M.open_file = function ()
   local str = api.nvim_get_current_line()
+  print('open_file line: ' .. str)
 
   pcall(function ()
       api.nvim_win_call(win_editor, function ()
           api.nvim_command('edit ' .. str)
-          api.nvim_command('bd#')
+          local current_buf = api.nvim_win_get_buf(0)
+          if current_buf ~= buf_editor and current_buf ~= buf_picker then
+              api.nvim_command('bd!#')
+          end
       end)
   end)
 
