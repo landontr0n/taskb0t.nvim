@@ -1,230 +1,187 @@
 local M = {}
 
--- eventual features...
--- tasks by tag
--- tag in frontmatter like task-tag
--- tasks by dir opt recursive
--- create favorites and have launcher like to pull up saved task contexts
--- toggle task
---
--- TODO: remove default editor creation fropm update view
--- ...instead call open file and if picker list is null then open a default view that explains the tool
-
---local _config = {}
-
 local api = vim.api
-local buf_picker, buf_editor, win_picker, win_editor
-local settings = vim.g.taskb0t_settings or {}
 
-M.setup = function (config)
-    --_config = config
-    print("taskb0t config:", config)
+-- Module imports
+local config = require('taskb0t.config')
+local state = require('taskb0t.state')
+local windows = require('taskb0t.ui.windows')
+local files = require('taskb0t.files')
+
+-- Setup function
+M.setup = function(user_config)
+    config.setup(user_config)
 end
 
-M.find_tasks = function (dir)
-    print("taskb0t.find_tasks: taskb0t vault dir:", dir or settings.vault_dir or '~/.config/taskb0t/vault/')
+-- Find tasks (to be implemented)
+M.find_tasks = function(dir)
+    local vault_dir = dir or config.get().vault_dir
+    vim.notify("Finding tasks in: " .. vault_dir, vim.log.levels.INFO)
+    -- TODO: Implement task finding logic
 end
 
-M.toggle_task = function (path, line)
-    print("taskb0t.toggle_task: path: " .. path .. " | line: " .. line)
+-- Toggle task (to be implemented)
+M.toggle_task = function(path, line)
+    vim.notify(
+        "Toggle task - path: " .. path .. " | line: " .. line,
+        vim.log.levels.INFO
+    )
+    -- TODO: Implement task toggling logic
 end
 
-local function open_files_window()
-  buf_picker = api.nvim_create_buf(false, true)
-
-  api.nvim_buf_set_option(buf_picker, 'bufhidden', 'wipe')
-  api.nvim_buf_set_option(buf_picker, 'filetype', 'taskb0t')
-
-  local width = api.nvim_get_option("columns")
-  local height = api.nvim_get_option("lines")
-
-  local win_height = math.ceil(height * 0.8 - 4)
-  local win_width = math.ceil(width * 0.4)
-  local row = math.ceil((height - win_height) / 2 - 1)
-  local col = math.ceil((width * 0.1) - 2)
-
-  local opts = {
-    relative = "editor",
-    border = "rounded",
-    width = win_width,
-    height = win_height,
-    row = row,
-    col = col,
-    title = "taskb0t",
-    title_pos = "center"
-  }
-
-  win_picker = api.nvim_open_win(buf_picker, true, opts)
-
-  api.nvim_win_set_option(win_picker, 'cursorline', true) -- it highlight line with the cursor on it
-
-end
-
-local function open_editor_window()
-  buf_editor = api.nvim_create_buf(false, true)
-
-  api.nvim_buf_set_option(buf_editor, 'bufhidden', 'wipe')
-  api.nvim_buf_set_option(buf_editor, 'filetype', 'taskb0t')
-
-  local width = api.nvim_get_option("columns")
-  local height = api.nvim_get_option("lines")
-
-  local win_height = math.ceil(height * 0.8 - 4)
-  local win_width = math.ceil(width * 0.4)
-  local row = math.ceil((height - win_height) / 2 - 1)
-  local col = math.ceil((width / 2) + 1)
-
-  local opts = {
-    relative = "editor",
-    border = "rounded",
-    width = win_width,
-    height = win_height,
-    row = row,
-    col = col,
-    title = "editor",
-    title_pos = "center"
-  }
-
-  win_editor = api.nvim_open_win(buf_editor, true, opts)
-
-  api.nvim_win_set_option(win_editor, 'cursorline', true) -- it highlight line with the cursor on it
-
-end
-
-local function open_navigator()
-    open_files_window()
-    open_editor_window()
-end
-
-local function get_files(dir)
-    -- TODO: make sure this tripple or statement works
-    -- Get all files and directories
-    local content = vim.split(vim.fn.glob(dir or settings.vault_dir or '~/.config/taskb0t/vault' .. "/*"), '\n', {trimempty=true})
-
-    return content
-end
-
+-- Update the picker view with current vault files
 local function update_view()
-  api.nvim_buf_set_option(buf_picker, 'modifiable', true)
+    local buf_picker, _ = state.get_picker()
 
-  local result = get_files()
-  if #result == 0 then table.insert(result, '') end -- add  an empty line to preserve layout if there is no results
-
-  api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
-  api.nvim_buf_set_option(buf_picker, 'modifiable', false)
-end
-
-local function set_mappings()
-  local picker_mappings = {
-    ['<cr>'] = 'set_win()',
-    q = 'close_window()',
-    d = 'delete_file()',
-    c = 'create_file()',
-    j = 'editor_nav(\"down\")',
-    k = 'editor_nav(\"up\")',
-    l = 'set_win()'
-  }
-
-  for k,v in pairs(picker_mappings) do
-    api.nvim_buf_set_keymap(buf_picker, 'n', k, ':lua require"taskb0t".'..v..'<cr>', {
-        nowait = true, noremap = true, silent = true
-      })
-  end
-end
-
-local function set_editor_mappings()
-  local editor_mappings = {
-    q = 'set_win()'
-  }
-
-  for k,v in pairs(editor_mappings) do
-    api.nvim_buf_set_keymap(buf_editor, 'n', k, ':lua require"taskb0t".'..v..'<cr>', {
-        nowait = true, noremap = true, silent = true
-      })
-  end
-end
-
-M.create_file = function (dir)
-    local user_input = vim.fn.input("New File Name: ")
-    vim.fn.writefile({"# " .. user_input}, dir or settings.vault_dir or vim.fn.expand("~/.config/taskb0t/vault/") .. user_input .. '.md')
-    update_view()
-    api.nvim_command("echo '' | redraw")
-    vim.api.nvim_echo({{"Created: " .. user_input, 'None'}}, true, {})
-end
-
-M.close_window = function ()
-  -- TODO: make this work properly
-  pcall(function ()
-      api.nvim_win_call(win_editor, function ()
-          api.nvim_command('bd')
-      end)
-      api.nvim_win_close(win_picker, true)
-      api.nvim_win_close(win_editor, true)
-  end)
-end
-
-M.open_file = function ()
-  local str = api.nvim_get_current_line()
-  print('open_file line: ' .. str)
-
-  pcall(function ()
-      api.nvim_win_call(win_editor, function ()
-          api.nvim_command('edit ' .. str)
-          local current_buf = api.nvim_win_get_buf(0)
-          if current_buf ~= buf_editor and current_buf ~= buf_picker then
-              api.nvim_command('bd!#')
-          end
-      end)
-  end)
-
-  buf_editor = api.nvim_win_get_buf(win_editor)
-  set_editor_mappings()
-end
-
-M.delete_file = function ()
-  local str = api.nvim_get_current_line()
-  local user_input = vim.fn.input("Are you sure you want to delete: " .. str .. " ? [y/N] : ")
-  api.nvim_command("echo '' | redraw")
-  if user_input == "y" then
-      vim.fn.delete(str)
-      update_view()
-      vim.api.nvim_echo({{"Deleted: " .. str}}, true, {})
-  end
-end
-
-M.set_win = function (window)
-    -- TODO: I'm assuming I can do better than this...
-    if window == nil then
-        local current_win = api.nvim_get_current_win()
-        if current_win == win_picker then
-            window = win_editor
-        else
-            window = win_picker
-        end
+    if not buf_picker or not api.nvim_buf_is_valid(buf_picker) then
+        vim.notify("Picker buffer not found", vim.log.levels.WARN)
+        return
     end
 
-    api.nvim_set_current_win(window)
+    vim.bo[buf_picker].modifiable = true
+
+    local result = files.get_files()
+    if #result == 0 then
+        table.insert(result, '')  -- Preserve layout if no results
+    end
+
+    api.nvim_buf_set_lines(buf_picker, 0, -1, false, result)
+    vim.bo[buf_picker].modifiable = false
 end
 
-M.editor_nav = function (direction)
-  local diff = 1
-  if direction == "down" then
-    diff = -1
-  end
+-- Open file in editor window
+M.open_file = function()
+    local file_path = api.nvim_get_current_line()
 
-  local new_pos = api.nvim_win_get_cursor(win_picker)[1] - diff
-  pcall(function ()
-      api.nvim_win_set_cursor(win_picker, {new_pos, 0})
-      M.open_file()
-  end)
+    if file_path == "" then
+        return
+    end
+
+    if files.open_file(file_path) then
+        set_editor_mappings()
+    end
 end
 
-M.taskb0t = function ()
-    open_navigator()
-    set_mappings()
+-- Create new file
+M.create_file = function(dir)
+    if files.create_file(dir) then
+        update_view()
+        vim.cmd("redraw")
+    end
+end
+
+-- Delete file
+M.delete_file = function()
+    local file_path = api.nvim_get_current_line()
+
+    if files.delete_file(file_path) then
+        update_view()
+    end
+end
+
+-- Close all windows
+M.close_window = function()
+    windows.close_all()
+end
+
+-- Toggle window focus
+M.set_win = function(window_type)
+    if window_type then
+        windows.set_focus(window_type)
+    else
+        windows.toggle_focus()
+    end
+end
+
+-- Navigate and auto-open files
+M.editor_nav = function(direction)
+    local _, win_picker = state.get_picker()
+
+    if not win_picker or not api.nvim_win_is_valid(win_picker) then
+        vim.notify("Picker window not found", vim.log.levels.WARN)
+        return
+    end
+
+    local offset = direction == "down" and -1 or 1
+    local current_pos = api.nvim_win_get_cursor(win_picker)[1]
+    local new_pos = current_pos - offset
+
+    -- Get total number of lines in picker buffer
+    local buf_picker, _ = state.get_picker()
+    local line_count = api.nvim_buf_line_count(buf_picker)
+
+    -- Validate new position
+    if new_pos < 1 or new_pos > line_count then
+        return
+    end
+
+    local ok = pcall(api.nvim_win_set_cursor, win_picker, {new_pos, 0})
+    if ok then
+        M.open_file()
+    end
+end
+
+-- Set picker window keymappings
+local function set_picker_mappings()
+    local buf_picker, _ = state.get_picker()
+
+    if not buf_picker or not api.nvim_buf_is_valid(buf_picker) then
+        return
+    end
+
+    local mappings = {
+        ['<cr>'] = M.set_win,
+        ['q'] = M.close_window,
+        ['d'] = M.delete_file,
+        ['c'] = M.create_file,
+        ['j'] = function() M.editor_nav("down") end,
+        ['k'] = function() M.editor_nav("up") end,
+        ['l'] = M.set_win,
+    }
+
+    for key, func in pairs(mappings) do
+        vim.keymap.set('n', key, func, {
+            buffer = buf_picker,
+            nowait = true,
+            noremap = true,
+            silent = true,
+        })
+    end
+end
+
+-- Set editor window keymappings
+function set_editor_mappings()
+    local buf_editor, _ = state.get_editor()
+
+    if not buf_editor or not api.nvim_buf_is_valid(buf_editor) then
+        return
+    end
+
+    vim.keymap.set('n', 'q', M.set_win, {
+        buffer = buf_editor,
+        nowait = true,
+        noremap = true,
+        silent = true,
+    })
+end
+
+-- Main entry point
+M.taskb0t = function()
+    -- Create windows
+    local buf_picker, win_picker = windows.create_picker()
+    local buf_editor, win_editor = windows.create_editor()
+
+    -- Store state
+    state.set_picker(buf_picker, win_picker)
+    state.set_editor(buf_editor, win_editor)
+
+    -- Set up keymappings
+    set_picker_mappings()
     set_editor_mappings()
+
+    -- Update view and open first file
     update_view()
-    M.set_win(win_picker)
+    windows.set_focus("picker")
     M.open_file()
 end
 

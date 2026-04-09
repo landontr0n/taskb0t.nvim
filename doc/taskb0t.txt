@@ -1,8 +1,290 @@
+*taskb0t.txt*  Distributed task management for Neovim
 
-======================================================================================================
-                                                                  *taskb0t.nvim*
+==============================================================================
+CONTENTS                                                   *taskb0t-contents*
 
-TODO: Add the help file information.
+    1. Introduction ............................ |taskb0t-introduction|
+    2. Installation ............................ |taskb0t-installation|
+    3. Configuration ........................... |taskb0t-configuration|
+    4. Commands ................................ |taskb0t-commands|
+    5. Keybindings ............................. |taskb0t-keybindings|
+    6. Functions ............................... |taskb0t-functions|
+    7. Architecture ............................ |taskb0t-architecture|
+    8. Troubleshooting ......................... |taskb0t-troubleshooting|
+    9. Changelog ............................... |taskb0t-changelog|
+    10. Credits ................................ |taskb0t-credits|
 
+==============================================================================
+INTRODUCTION                                           *taskb0t-introduction*
 
+taskb0t.nvim is a distributed task management plugin for Neovim that provides
+a dual-pane interface for managing markdown-based task files.
+
+Features:
+  - Dual-pane interface (picker + editor)
+  - Markdown file-based task storage
+  - Secure file operations with path validation
+  - Vim-style navigation
+  - Configurable vault location and window sizes
+  - Built with modern Neovim APIs
+
+==============================================================================
+INSTALLATION                                           *taskb0t-installation*
+
+Using lazy.nvim: >lua
+    {
+        'landontr0n/taskb0t.nvim',
+        config = function()
+            require('taskb0t').setup()
+        end,
+    }
+<
+
+Using packer.nvim: >lua
+    use {
+        'landontr0n/taskb0t.nvim',
+        config = function()
+            require('taskb0t').setup()
+        end,
+    }
+<
+
+Using Vim-Plug: >vim
+    Plug 'landontr0n/taskb0t.nvim'
+
+    lua << EOF
+    require('taskb0t').setup()
+    EOF
+<
+
+==============================================================================
+CONFIGURATION                                         *taskb0t-configuration*
+
+                                                            *taskb0t.setup()*
+setup({config})
+    Configure taskb0t.nvim with custom settings.
+
+    Parameters: ~
+        {config}  (table|nil)  Configuration table
+
+    Configuration options: ~
+        vault_dir               (string)  Path to task vault directory
+                                          Default: "~/.config/taskb0t/vault"
+
+        window_width_percent    (number)  Width of each pane (0.0-1.0)
+                                          Default: 0.4
+
+        window_height_percent   (number)  Height of windows (0.0-1.0)
+                                          Default: 0.8
+
+        auto_create_vault       (boolean) Auto-create vault if missing
+                                          Default: true
+
+        confirm_delete          (boolean) Confirm before file deletion
+                                          Default: true
+
+    Example: >lua
+        require('taskb0t').setup({
+            vault_dir = "~/Documents/tasks",
+            window_width_percent = 0.5,
+            window_height_percent = 0.9,
+            confirm_delete = false,
+        })
+<
+
+    Alternative configuration using vim.g: >vim
+        let g:taskb0t_config = {
+            \ 'vault_dir': '~/Documents/tasks',
+            \ 'window_width_percent': 0.5,
+            \ }
+<
+
+==============================================================================
+COMMANDS                                                   *taskb0t-commands*
+
+                                                              *:Taskb0tList*
+:Taskb0tList
+    Open the taskb0t dual-pane interface.
+
+    The picker window (left) shows all markdown files in the vault.
+    The editor window (right) displays the selected file's contents.
+
+                                                         *:Taskb0tFindTasks*
+:Taskb0tFindTasks
+    Search for tasks in the vault directory.
+
+    Note: This command is planned for future implementation.
+
+==============================================================================
+KEYBINDINGS                                             *taskb0t-keybindings*
+
+PICKER WINDOW (LEFT PANE)                          *taskb0t-picker-mappings*
+
+    j                   Move down and preview file in editor
+    k                   Move up and preview file in editor
+    <CR>                Switch focus to editor window
+    l                   Switch focus to editor window
+    c                   Create new task file
+    d                   Delete selected file (with confirmation)
+    q                   Close taskb0t interface
+
+EDITOR WINDOW (RIGHT PANE)                         *taskb0t-editor-mappings*
+
+    q                   Switch focus back to picker window
+
+    All standard Vim commands work normally in the editor window.
+
+==============================================================================
+FUNCTIONS                                                 *taskb0t-functions*
+
+taskb0t.setup({config})
+    See |taskb0t.setup()| in |taskb0t-configuration|
+
+taskb0t.taskb0t()                                        *taskb0t.taskb0t()*
+    Open the taskb0t interface.
+    Called by |:Taskb0tList| command.
+
+taskb0t.find_tasks({dir})                            *taskb0t.find_tasks()*
+    Search for tasks in the specified directory.
+
+    Parameters: ~
+        {dir}  (string|nil)  Directory to search (defaults to vault_dir)
+
+taskb0t.toggle_task({path}, {line})                 *taskb0t.toggle_task()*
+    Toggle task completion status at specified location.
+
+    Parameters: ~
+        {path}  (string)  File path
+        {line}  (number)  Line number
+
+    Note: This function is planned for future implementation.
+
+taskb0t.create_file({dir})                          *taskb0t.create_file()*
+    Create a new task file in the vault.
+
+    Parameters: ~
+        {dir}  (string|nil)  Directory (defaults to vault_dir)
+
+    Security: ~
+        - Validates filename to prevent path traversal
+        - Rejects special characters and path separators
+        - Ensures file stays within vault directory
+
+taskb0t.delete_file()                               *taskb0t.delete_file()*
+    Delete the currently selected file.
+
+    Shows confirmation dialog if confirm_delete is enabled.
+
+taskb0t.open_file()                                  *taskb0t.open_file()*
+    Open the currently selected file in the editor window.
+
+taskb0t.close_window()                            *taskb0t.close_window()*
+    Close the taskb0t interface and clean up resources.
+
+    Checks for unsaved changes before closing.
+
+taskb0t.set_win({window_type})                        *taskb0t.set_win()*
+    Set focus to specified window or toggle between windows.
+
+    Parameters: ~
+        {window_type}  (string|nil)  "picker" or "editor" (nil toggles)
+
+taskb0t.editor_nav({direction})                    *taskb0t.editor_nav()*
+    Navigate in picker and auto-preview in editor.
+
+    Parameters: ~
+        {direction}  (string)  "up" or "down"
+
+==============================================================================
+ARCHITECTURE                                           *taskb0t-architecture*
+
+taskb0t.nvim uses a modular architecture for maintainability:
+
+    lua/taskb0t/
+    ├── init.lua          Main entry point and public API
+    ├── config.lua        Configuration management
+    ├── state.lua         Window/buffer state management
+    ├── files.lua         File operations with security
+    └── ui/
+        └── windows.lua   Window creation and management
+
+SECURITY FEATURES                                    *taskb0t-security*
+
+taskb0t.nvim implements multiple security measures:
+
+    Path Injection Prevention ~
+        Validates filenames to prevent directory traversal attacks.
+        Rejects: "..", "/", "\\", and empty names
+
+    Command Injection Protection ~
+        Escapes file paths using vim.fn.fnameescape() before shell commands
+
+    Vault Confinement ~
+        Resolves paths and ensures all operations stay within vault directory
+
+    Input Validation ~
+        Validates user input at all entry points
+
+==============================================================================
+TROUBLESHOOTING                                     *taskb0t-troubleshooting*
+
+VAULT DIRECTORY NOT FOUND ~
+
+If you see "Vault directory not found" errors:
+
+1. Check your configuration: >lua
+    :lua print(require('taskb0t.config').get().vault_dir)
+<
+
+2. Ensure auto_create_vault is enabled or create manually: >bash
+    mkdir -p ~/.config/taskb0t/vault
+<
+
+DEPRECATED API WARNINGS ~
+
+taskb0t.nvim requires Neovim 0.7 or later. Update Neovim if you see
+deprecation warnings.
+
+WINDOWS WON'T OPEN ~
+
+Check for conflicts with other floating window plugins: >vim
+    :messages
+<
+
+Look for error messages about window creation.
+
+FILE WON'T DELETE ~
+
+Ensure you have write permissions in the vault directory: >bash
+    ls -la ~/.config/taskb0t/vault
+<
+
+==============================================================================
+CHANGELOG                                                 *taskb0t-changelog*
+
+v0.2.0 (2026-04-08) - Major Refactor ~
+    - Modular architecture with separated concerns
+    - Security fixes for path/command injection
+    - Modern Neovim APIs (vim.bo, vim.wo, vim.keymap.set)
+    - Comprehensive documentation
+    - Configuration system with defaults
+    - Improved error handling and user feedback
+
+v0.1.0 - Initial Release ~
+    - Basic dual-pane task browser
+    - Create, delete, and edit markdown files
+    - Vim-style navigation
+
+==============================================================================
+CREDITS                                                     *taskb0t-credits*
+
+taskb0t.nvim is built and maintained by landontr0n
+https://github.com/landontr0n/taskb0t.nvim
+
+Refactored with Claude Code
+https://claude.com/claude-code
+
+License: MIT
+
+==============================================================================
 vim:tw=78:ts=8:ft=help:norl:
