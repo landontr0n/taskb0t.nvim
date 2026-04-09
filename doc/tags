@@ -22,7 +22,6 @@ taskb0t.find_tasks()	taskb0t.txt	/*taskb0t.find_tasks()*
 taskb0t.open_file()	taskb0t.txt	/*taskb0t.open_file()*
 taskb0t.set_win()	taskb0t.txt	/*taskb0t.set_win()*
 taskb0t.setup()	taskb0t.txt	/*taskb0t.setup()*
-taskb0t.setup()	taskb0t.txt	/*taskb0t.setup()*
 taskb0t.taskb0t()	taskb0t.txt	/*taskb0t.taskb0t()*
 taskb0t.toggle_task()	taskb0t.txt	/*taskb0t.toggle_task()*
 taskb0t.txt	taskb0t.txt	/*taskb0t.txt*

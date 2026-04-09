@@ -13,6 +13,47 @@ Distributed task management for Neovim with a dual-pane markdown file browser.
 
 ## Installation
 
+### Using Native vim.pack (Neovim 0.12+)
+
+**Recommended for Neovim 0.12+** - No external plugin manager required!
+
+```lua
+-- In your init.lua
+vim.pack.add({
+    source = 'landontr0n/taskb0t.nvim',
+    hooks = {
+        post_install = function()
+            vim.cmd('helptags ALL')
+        end,
+    },
+})
+
+-- Configure after adding
+require('taskb0t').setup({
+    vault_dir = "~/.config/taskb0t/vault",
+    window_width_percent = 0.4,
+    window_height_percent = 0.8,
+    auto_create_vault = true,
+    confirm_delete = true,
+})
+```
+
+**Manual Installation with vim.pack:**
+
+```bash
+# Clone into Neovim's pack directory
+git clone https://github.com/landontr0n/taskb0t.nvim \
+    ~/.local/share/nvim/site/pack/plugins/start/taskb0t.nvim
+
+# Generate help tags
+nvim -c "helptags ~/.local/share/nvim/site/pack/plugins/start/taskb0t.nvim/doc" -c "quit"
+```
+
+Then add to your `init.lua`:
+```lua
+require('taskb0t').setup()
+```
+
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
